@@ -1,316 +1,96 @@
+# Eden nightly, packaged from the official prebuilt PGO AppImage.
+#
+# The nightly releases (https://git.eden-emu.dev/eden-ci/nightly/releases) are
+# distributed as dwarfs-based AppImages built with uruntime, so they cannot be
+# extracted by appimageTools (squashfs). We extract the embedded dwarfs
+# filesystem directly and install the self-contained sharun AppDir instead, so
+# everything that matters (PGO-optimized eden + bundled libs) is kept intact.
 {
   lib,
   stdenv,
-  callPackage,
-  cmake,
-  openssl,
-  boost,
-  fmt_11,
-  nlohmann_json,
-  lz4,
-  zlib,
-  zstd,
-  enet,
-  libopus,
-  vulkan-headers,
-  vulkan-utility-libraries,
-  spirv-tools,
-  spirv-headers,
-  simpleini,
-  discord-rpc,
-  cubeb,
-  vulkan-memory-allocator,
-  vulkan-loader,
-  libusb1,
-  pkg-config,
-  gamemode,
-  stb,
-  SDL2,
-  glslang,
-  python3,
-  httplib,
-  cpp-jwt,
-  fetchFromGitea,
-  ffmpeg-headless,
-  qt6,
-  fetchFromGitHub,
   fetchurl,
-  unzip,
-  unordered_dense,
-  mbedtls,
-  xbyak,
-  zydis,
-}: let
-  inherit
-    (qt6)
-    qtbase
-    qtmultimedia
-    qtwayland
-    wrapQtAppsHook
-    qttools
-    qtwebengine
-    qt5compat
-    ;
+  dwarfs,
+}:
+let
+  # Latest nightly release ("Eden Nightly - Oct 05 2026", commit 10bcd2d849).
+  # To update: check https://git.eden-emu.dev/eden-ci/nightly/releases,
+  # adjust tagName/commit/date and recompute the listed hashes.
+  tagName = "v1791243079.10bcd2d849";
+  commit = "10bcd2d849";
+  date = "2026-10-05";
 
-  quazip = stdenv.mkDerivation {
-    pname = "quazip";
-    version = "1.5-qt6";
-    src = fetchFromGitHub {
-      owner = "crueter-archive";
-      repo = "quazip-qt6";
-      rev = "f838774d6306eb5a500af9ab336ec85f01ebd7ec";
-      hash = "sha256-Jp+v7uwoPxvarzOclgSnoGcwAPXKnm23yrZKtjJCHro=";
+  appimages = {
+    x86_64-linux = fetchurl {
+      url = "https://nightly.eden-emu.dev/${tagName}/Eden-Linux-${commit}-amd64-clang-pgo.AppImage";
+      hash = "sha256-PZhfxJ9OzU0fVS+cjKqjS6J7QqnUCc5EyefGWbp6bi0=";
     };
-    nativeBuildInputs = [
-      cmake
-    ];
-
-    buildInputs = [
-      qtbase
-      qtmultimedia
-      qtwayland
-      wrapQtAppsHook
-      qttools
-      qtwebengine
-      qt5compat
-    ];
+    aarch64-linux = fetchurl {
+      url = "https://nightly.eden-emu.dev/${tagName}/Eden-Linux-${commit}-aarch64-clang-pgo.AppImage";
+      hash = "sha256-V05mYTx+lxUP7tIapakDqyby5W10Py74NjWbUYIECRo=";
+    };
   };
-
-  oaknut = stdenv.mkDerivation rec {
-    pname = "oaknut";
-    version = "2.0.3";
-    src = fetchFromGitHub {
-      owner = "eden-emulator";
-      repo = "oaknut";
-      rev = "v${version}";
-      hash = "sha256-NWJMottKMiG6Rk2/ACNtBiYfWDsCeSGznPTqVO809P0=";
-    };
-    nativeBuildInputs = [
-      cmake
-    ];
-  };
-
-  mcl = stdenv.mkDerivation {
-    pname = "mcl";
-    version = "latest";
-    src = fetchFromGitHub {
-      owner = "azahar-emu";
-      repo = "mcl";
-      rev = "7b08d83418f628b800dfac1c9a16c3f59036fbad";
-      hash = "sha256-uTOiOlMzKbZSjKjtVSqFU+9m8v8horoCq3wL0O2E8sI=";
-    };
-
-    nativeBuildInputs = [
-      cmake
-    ];
-
-    buildInputs = [
-      fmt_11
-    ];
-  };
-
-  sirit = stdenv.mkDerivation rec {
-    pname = "sirit";
-    version = "v1.0.2";
-    src = fetchFromGitHub {
-      owner = "eden-emulator";
-      repo = "sirit";
-      rev = "${version}";
-      hash = "sha256-0wjpQm8tWHeEebSiRGs7b8LYcA2d4MEbHuffP2eSNGU=";
-    };
-
-    nativeBuildInputs = [
-      pkg-config
-      cmake
-    ];
-
-    buildInputs = [
-      spirv-headers
-    ];
-
-    cmakeFlags = [
-      "-DSIRIT_USE_SYSTEM_SPIRV_HEADERS=ON"
-    ];
-  };
-
-  nx_tzdb = let
-    version = "121125";
-  in
-    builtins.fetchTarball {
-      url = "https://git.crueter.xyz/misc/tzdb_to_nx/releases/download/${version}/${version}.tar.gz";
-      sha256 = "sha256-6+qt4yzisNx8cAOrWVS+g/GCeTD37iejQN06Ij6OMxU=";
-    };
-
-  xbyak_new = xbyak.overrideAttrs (oldAttrs: {
-    version = "7.22";
-    src = fetchFromGitHub {
-      owner = "herumi";
-      repo = "xbyak";
-      rev = "4e44f4614ddbf038f2a6296f5b906d5c72691e0f";
-      hash = "sha256-ZmdOjO5MbY+z+hJEVgpQzoYGo5GAFgwAPiv4vs/YMUA=";
-    };
-  });
-
-  frozen = stdenv.mkDerivation (finalAttrs: rec {
-    pname = "frozen";
-    version = "61dce5ae18ca59931e27675c468e64118aba8744";
-    src = fetchFromGitHub {
-      owner = "serge-sans-paille";
-      repo = "frozen";
-      rev = "${version}";
-      hash = "sha256-zIczBSRDWjX9hcmYWYkbWY3NAAQwQtKhMTeHlYp4BKk=";
-    };
-
-    nativeBuildInputs = [
-      cmake
-    ];
-  });
-  version = "0.1.1";
 in
-  stdenv.mkDerivation (finalAttrs: {
-    pname = "eden";
-    inherit version;
-    src = builtins.fetchTree {
-      type = "git";
-      url = "https://git.eden-emu.dev/eden-emu/eden.git";
-      ref = "v${version}";
-      rev = "385b7cad77c3546082087c3993a3944c2050dd15";
-      submodules = true;
-    };
+assert lib.assertMsg
+  (appimages ? ${stdenv.hostPlatform.system})
+  "eden: no nightly AppImage for ${stdenv.hostPlatform.system}";
+stdenv.mkDerivation (finalAttrs: {
+  pname = "eden";
+  version = "nightly-${date}-${commit}";
+  src = appimages.${stdenv.hostPlatform.system};
 
-    patches = [
-      ./discord-rpc-compat.patch
-    ];
+  nativeBuildInputs = [ dwarfs ];
 
-    nativeBuildInputs = [
-      cmake
-      glslang
-      pkg-config
-      python3
-      qttools
-      wrapQtAppsHook
-      mcl
-      frozen
-    ];
+  dontConfigure = true;
+  dontBuild = true;
+  dontStrip = true;
+  dontFixup = true;
 
-    buildInputs =
-      lib.optional stdenv.hostPlatform.isAarch64 oaknut
-      ++ [
-        vulkan-headers
+  # The AppImage is a dwarfs image appended to a static uruntime ELF.
+  # The payload offset is computed the same way AppRunners do it:
+  # e_shoff + e_shentsize * e_shnum of the runtime ELF.
+  unpackPhase = ''
+    runHook preUnpack
 
-        qt5compat
-        discord-rpc
-        mcl
-        boost
-        nx_tzdb
-        cpp-jwt
-        cubeb
-        enet
-        ffmpeg-headless
-        fmt_11
-        gamemode
-        httplib
-        openssl
-        libopus
-        libusb1
-        lz4
-        mbedtls
-        nlohmann_json
-        qtbase
-        qtmultimedia
-        qtwayland
-        qtwebengine
-        SDL2
-        quazip
-        simpleini
-        spirv-tools
-        spirv-headers
-        sirit
-        stb
-        unordered_dense
-        vulkan-memory-allocator
-        vulkan-utility-libraries
-        xbyak_new
-        zlib
-        zstd
-        zydis
-      ];
+    mkdir AppDir
+    cd AppDir
+    offset=$(readelf -h "''$src" | awk 'NR==13{e_shoff=$5} NR==18{e_shentsize=$5} NR==19{e_shnum=$5} END{print e_shoff+e_shentsize*e_shnum}')
+    echo "extracting dwarfs payload at offset ''$offset"
+    dwarfsextract -i "''$src" -O "''$offset"
 
-    # dontFixCmake = true;
+    runHook postUnpack
+  '';
 
-    __structuredAttrs = true;
-    cmakeFlags = [
-      # actually has a noticeable performance impact
-      (lib.cmakeBool "YUZU_ENABLE_LTO" true)
-      (lib.cmakeBool "YUZU_TESTS" false)
-      (lib.cmakeBool "DYNARMIC_TESTS" false)
+  installPhase = ''
+    runHook preInstall
 
-      (lib.cmakeBool "ENABLE_QT6" true)
-      (lib.cmakeBool "ENABLE_QT_TRANSLATION" true)
-      (lib.cmakeBool "ENABLE_OPENSSL" true)
+    payload=$out/share/eden
+    mkdir -p $payload
+    cp -r ./* $payload/
 
-      # use system libraries
-      # NB: "external" here means "from the externals/ directory in the source",
-      # so "false" means "use system"
-      (lib.cmakeBool "YUZU_USE_EXTERNAL_SDL2" false)
-      (lib.cmakeBool "YUZU_USE_EXTERNAL_VULKAN_HEADERS" false)
-      (lib.cmakeBool "YUZU_USE_EXTERNAL_VULKAN_UTILITY_LIBRARIES" false)
-      (lib.cmakeBool "YUZU_USE_EXTERNAL_VULKAN_SPIRV_TOOLS" false)
-      (lib.cmakeBool "YUZU_USE_CPM" false)
-      (lib.cmakeBool "CPMUTIL_FORCE_SYSTEM" true)
+    mkdir -p $out/bin
+    cat > $out/bin/eden <<EOF
+#!/bin/sh
+export APPDIR=$payload
+exec $payload/AppRun.sh "\$@"
+EOF
+    chmod 0755 $out/bin/eden
 
-      # nx_tzdb
-      (lib.cmakeFeature "YUZU_TZDB_PATH" "${nx_tzdb}")
+    install -Dm0644 dev.eden_emu.eden.desktop \
+      $out/share/applications/dev.eden_emu.eden.desktop
+    install -Dm0644 dev.eden_emu.eden.svg \
+      $out/share/icons/hicolor/scalable/apps/dev.eden_emu.eden.svg
 
-      # don't check for missing submodules
-      (lib.cmakeBool "YUZU_CHECK_SUBMODULES" false)
+    runHook postInstall
+  '';
 
-      # enable some optional features
-      (lib.cmakeBool "YUZU_USE_QT_WEB_ENGINE" true)
-      (lib.cmakeBool "YUZU_USE_QT_MULTIMEDIA" true)
-      (lib.cmakeBool "USE_DISCORD_PRESENCE" true)
-
-      # We dont want to bother upstream with potentially outdated compat reports
-      # TODO: revisit this, old emulator versions will be floating around anyway
-      (lib.cmakeBool "YUZU_ENABLE_COMPATIBILITY_REPORTING" false)
-      (lib.cmakeBool "ENABLE_COMPATIBILITY_LIST_DOWNLOAD" true)
-
-      (lib.cmakeFeature "TITLE_BAR_FORMAT_IDLE" "eden | {} (nix)")
-      (lib.cmakeFeature "TITLE_BAR_FORMAT_RUNNING" "eden | {} (nix)")
-
-      # Dev
-      (lib.cmakeBool "SIRIT_USE_SYSTEM_SPIRV_HEADERS" true)
-      (lib.cmakeFeature "CMAKE_CXX_FLAGS" "-Wno-error -Wno-array-parameter -Wno-stringop-overflow")
-    ];
-
-    env = {
-      NIX_CFLAGS_COMPILE = lib.optionalString stdenv.hostPlatform.isx86_64 "-msse4.2";
-    };
-
-    qtWrapperArgs = [
-      "--prefix LD_LIBRARY_PATH : ${vulkan-loader}/lib"
-    ];
-
-    preConfigure = ''
-      # Set build date to commit date for reproducibility
-      export SOURCE_DATE_EPOCH=${toString finalAttrs.src.lastModified}
-
-      # Provide version info for builds without .git
-      echo "${finalAttrs.version}" > GIT-REFSPEC
-      echo "${finalAttrs.src.rev}" > GIT-COMMIT
-      echo "${finalAttrs.version}" > GIT-TAG
-    '';
-
-    postInstall = ''
-      install -Dm44 $src/dist/72-yuzu-input.rules $out/lib/udev/rules.d/72-yuzu-input.rules
-    '';
-
-    meta = {
-      description = "Nintendo Switch video game console emulator";
-      homepage = "https://eden-emu.dev/";
-      downloadPage = "https://eden-emu.dev/download";
-      changelog = "https://github.com/eden-emulator/Releases/releases";
-      mainProgram = "eden";
-      desktopFileName = "dist/dev.eden_emu.eden.desktop";
-    };
-  })
+  meta = {
+    description = "Nintendo Switch video game console emulator (official nightly PGO build)";
+    homepage = "https://eden-emu.dev/";
+    downloadPage = "https://git.eden-emu.dev/eden-ci/nightly/releases";
+    changelog = "https://git.eden-emu.dev/eden-ci/nightly/releases/tag/${tagName}";
+    mainProgram = "eden";
+    desktopFileName = "dev.eden_emu.eden.desktop";
+    sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
+    platforms = lib.attrNames appimages;
+  };
+})

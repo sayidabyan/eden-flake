@@ -1,6 +1,12 @@
 # eden-flake
 
-A nix flake for [Eden](https://git.eden-emu.dev/eden-emu/eden).
+A nix flake for [Eden](https://git.eden-emu.dev/eden-emu/eden), tracking the official [nightly](https://git.eden-emu.dev/eden-ci/nightly/releases) builds.
+
+The package installs the official nightly **PGO AppImage** (dwarfs-packaged), which is extracted and wrapped for Nix. The nightly PGO build is ~10–30% faster than standard builds and is the recommended variant upstream.
+
+> [!NOTE]
+> Upstream distributes the Linux nightlies as dwarfs-based AppImages rather than squashfs, so nixpkgs' `appimageTools` can't extract them; this flake extracts the embedded dwarfs payload directly.
+
 
 ## Installation
 Add this flake to the inputs of your `flake.nix`.
@@ -92,4 +98,17 @@ trusted-public-keys = eden-flake.cachix.org-1:9orwA5vFfBgb67pnnpsxBqILQlb2UI2grW
 ```
 
 ## Usage
-Run `$ eden` or run from the .desktop entry
+Run `$ eden` or run from the .desktop entry.
+
+## Updating the nightly
+To point the flake at a newer nightly ("Eden Nightly - <date>"), edit `package.nix`:
+
+1. Set `tagName` to the release tag (e.g. `v1791243079.10bcd2d849`), `commit` to the eden commit short hash and `date` to the release date.
+2. Recompute the two `sha256` hashes for the amd64/aarch64 **PGO** AppImages, e.g.:
+
+   ```sh
+   sha256sum-to-hash() { nix hash convert --to sri --hash-algo sha256 "$(nix-prefetch-url --type sha256 <url>/dev/null | head -1)"; }
+   ```
+
+   or simply build once (`nix build .#eden`) and copy the `got: sha256-...` from the mismatch error.
+
