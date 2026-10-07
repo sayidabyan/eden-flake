@@ -71,8 +71,14 @@ stdenv.mkDerivation (finalAttrs: {
     cat > $out/bin/eden <<EOF
 #!/bin/sh
 export APPDIR=$payload
-# let xdg-desktop-portal find the bundled .desktop file for app-id registration
+# make the bundled desktop file discoverable for xdg-desktop-portal
 export XDG_DATA_DIRS=$payload/share:"\$XDG_DATA_DIRS"
+# opt-in: set EDEN_NO_PORTAL=1 to skip portal registration entirely
+# (silences the qt.qpa.services "App info not found" warning by making
+# Qt ignore the desktop portal; portal theme/dialog integration is lost)
+if [ "\''${EDEN_NO_PORTAL:-0}" = "1" ]; then
+  unset XDG_CURRENT_DESKTOP
+fi
 exec $payload/AppRun.sh "\$@"
 EOF
     chmod 0755 $out/bin/eden

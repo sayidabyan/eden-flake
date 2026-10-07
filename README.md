@@ -100,6 +100,16 @@ trusted-public-keys = eden-flake.cachix.org-1:9orwA5vFfBgb67pnnpsxBqILQlb2UI2grW
 ## Usage
 Run `$ eden` or run from the .desktop entry.
 
+### Portal warning
+If launching eden from a terminal prints
+`qt.qpa.services: Failed to register with host portal ... App info not found`,
+that warning is harmless: Qt tries to register with `xdg-desktop-portal`,
+which can't resolve the app's desktop file on some setups and then simply
+skips registration. To silence it completely, run eden with:
+
+    EDEN_NO_PORTAL=1 eden
+
+
 ## Updating the nightly
 To point the flake at a newer nightly ("Eden Nightly - <date>"), edit `package.nix`:
 
