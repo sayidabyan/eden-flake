@@ -19,22 +19,9 @@ in
       defaultText = lib.literalExpression "eden";
       description = "The Eden package to use";
     };
-
-    enableCache = lib.mkEnableOption ''
-      Enable the Cachix substituter for Eden packages.
-    '';
   };
 
-  config = lib.mkMerge [
-    (lib.mkIf cfg.enableCache {
-      nix.settings = {
-        substituters = [ "https://eden-flake.cachix.org" ];
-        trusted-public-keys = [ "eden-flake.cachix.org-1:9orwA5vFfBgb67pnnpsxBqILQlb2UI2grWt4zHHAxs8=" ];
-      };
-    })
-
-    (lib.mkIf cfg.enable {
-      environment.systemPackages = [ cfg.package ];
-    })
-  ];
+  config = lib.mkIf cfg.enable {
+    environment.systemPackages = [ cfg.package ];
+  };
 }
