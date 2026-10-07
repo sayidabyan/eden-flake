@@ -71,6 +71,8 @@ stdenv.mkDerivation (finalAttrs: {
     cat > $out/bin/eden <<EOF
 #!/bin/sh
 export APPDIR=$payload
+# let xdg-desktop-portal find the bundled .desktop file for app-id registration
+export XDG_DATA_DIRS=$payload/share:"\$XDG_DATA_DIRS"
 exec $payload/AppRun.sh "\$@"
 EOF
     chmod 0755 $out/bin/eden
