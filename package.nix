@@ -12,21 +12,21 @@
   dwarfs,
 }:
 let
-  # Latest nightly release ("Eden Nightly - Oct 05 2026", commit 10bcd2d849).
+  # Latest nightly release ("Eden Nightly - Oct 12 2026", commit 4dc69c06f7).
   # To update: check https://git.eden-emu.dev/eden-ci/nightly/releases,
   # adjust tagName/commit/date and recompute the listed hashes.
-  tagName = "v1791243079.10bcd2d849";
-  commit = "10bcd2d849";
-  date = "2026-10-05";
+  tagName = "v1791849564.4dc69c06f7";
+  commit = "4dc69c06f7";
+  date = "2026-10-12";
 
   appimages = {
     x86_64-linux = fetchurl {
       url = "https://nightly.eden-emu.dev/${tagName}/Eden-Linux-${commit}-amd64-clang-pgo.AppImage";
-      hash = "sha256-PZhfxJ9OzU0fVS+cjKqjS6J7QqnUCc5EyefGWbp6bi0=";
+      hash = "sha256-4fUtD15O32iDKf27kGWYOZ6f3oI3cJuemitGJ6PuE94=";
     };
     aarch64-linux = fetchurl {
       url = "https://nightly.eden-emu.dev/${tagName}/Eden-Linux-${commit}-aarch64-clang-pgo.AppImage";
-      hash = "sha256-V05mYTx+lxUP7tIapakDqyby5W10Py74NjWbUYIECRo=";
+      hash = "sha256-VOSzJwHRQ/LICZiZo9DMDX2aWA8P0w0TAIIqgmDmjvs=";
     };
   };
 in
